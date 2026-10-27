@@ -48,8 +48,8 @@ const checkInSchema = z.object({
 });
 
 const grievanceSchema = z.object({
-  title: z.string().min(3).max(150),
-  description: z.string().min(5).max(2000),
+  title: z.string().min(1).max(150),
+  description: z.string().min(1).max(2000),
   category: z.string().min(2).max(50),
   severity: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   photoUrl: z.string().max(2 * 1024 * 1024).optional().nullable(),
@@ -64,7 +64,7 @@ const grievanceStatusSchema = z.object({
 const feedbackSchema = z.object({
   category: z.string().min(2).max(50),
   rating: z.coerce.number().min(1).max(5),
-  comment: z.string().min(3).max(1000),
+  comment: z.string().min(1).max(1000),
 });
 
 const passportItemSchema = z.object({

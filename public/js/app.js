@@ -1468,7 +1468,7 @@
       </section>
     `;
 
-    // Hook Real-Time Speech Recognition (Continuous Live Voice Dictation)
+    // Hook Real-Time Speech Recognition (Continuous Live Voice Dictation + Tamil Script Engine)
     let isRecording = false;
     let userStopped = false;
     let voiceDictated = false;
@@ -1478,7 +1478,12 @@
     let finalTranscriptLog = '';
     let initialTitleBeforeMic = '';
     let initialDescBeforeMic = '';
-    let currentRecognitionLang = state.lang === 'ta' ? 'ta-IN' : state.lang === 'hi' ? 'hi-IN' : 'en-IN';
+    // Use hi-IN for Hindi and en-IN + live Tamil script transliteration engine for Tamil (since macOS speech engine supports en-IN & hi-IN natively)
+    const getOptimalRecognitionLang = () => {
+      if (state.lang === 'hi') return 'hi-IN';
+      return 'en-IN';
+    };
+    let currentRecognitionLang = getOptimalRecognitionLang();
 
     const micBtn = document.getElementById('btn-voice-stt');
     const micIcon = document.getElementById('mic-icon');
@@ -1486,6 +1491,113 @@
     const descInput = document.getElementById('grv-description');
     const titleInput = document.getElementById('grv-title');
     const catSelect = document.getElementById('grv-category');
+
+    // Live Tanglish / English -> Tamil Unicode Script Transliterator & Lexicon
+    const TAMIL_SPEECH_LEXICON = {
+      vanakkam: 'வணக்கம்', nanri: 'நன்றி', nandri: 'நன்றி', enna: 'என்ன', inge: 'இங்கே', inga: 'இங்கே',
+      ange: 'அங்கே', illai: 'இல்லை', illa: 'இல்லை', irukku: 'இருக்கிறது', irukkirathu: 'இருக்கிறது',
+      romba: 'ரொம்ப', idhu: 'இது', indha: 'இந்த', andha: 'அந்த', ippo: 'இப்போது', udane: 'உடனே',
+      sari: 'சரி', vendum: 'வேண்டும்', venum: 'வேண்டும்', velai: 'வேலை', thanni: 'தண்ணீர்',
+      thanneer: 'தண்ணீர்', kudineer: 'குடிநீர்', minsaram: 'மின்சாரம்', minsaaram: 'மின்சாரம்',
+      kambi: 'கம்பி', aapathu: 'ஆபத்து', abathu: 'ஆபத்து', vali: 'வலி', kaayam: 'காயம்',
+      pazhudhu: 'பழுது', thee: 'தீ', pugai: 'புகை', veppam: 'வெப்பம்', veyil: 'வெயில்',
+      sambalam: 'சம்பளம்', oothiyam: 'ஊதியம்', neram: 'நேரம்', kaalai: 'காலை', maalai: 'மாலை',
+      iravu: 'இரவு', hello: 'வணக்கம்', hi: 'வணக்கம்', hey: 'வணக்கம்', good: 'நல்ல',
+      morning: 'காலை', evening: 'மாலை', night: 'இரவு', shift: 'பணி', work: 'வேலை',
+      worker: 'தொழிலாளி', workers: 'தொழிலாளர்கள்', water: 'குடிநீர்', drinking: 'குடிநீர்',
+      no: 'இல்லை', not: 'இல்லை', working: 'வேலை செய்யவில்லை', broken: 'பழுதடைந்துள்ளது',
+      damaged: 'சேதமடைந்துள்ளது', loose: 'தளர்ந்துள்ளது', missing: 'காணவில்லை',
+      scaffolding: 'சாரம்', guard: 'தடுப்பு', rail: 'கம்பி', floor: 'தளம்', one: 'ஒன்று',
+      two: 'இரண்டு', three: 'மூன்று', four: 'நான்கு', five: 'ஐந்து', electric: 'மின்சார',
+      electrical: 'மின்சார', wire: 'மின் கம்பி', cable: 'மின் கம்பி', power: 'மின்சாரம்',
+      shock: 'மின் அதிர்ச்சி', danger: 'ஆபத்து', dangerous: 'ஆபத்தான', unsafe: 'பாதுகாப்பற்ற',
+      safety: 'பாதுகாப்பு', helmet: 'தலைக்கவசம்', gloves: 'கையுறைகள்', shoes: 'காலணிகள்',
+      heat: 'வெப்பம்', hot: 'வெப்பம்', fire: 'தீ', smoke: 'புகை', fume: 'புகை',
+      lab: 'ஆய்வகம்', laboratory: 'ஆய்வகம்', chemical: 'வேதியியல்', acid: 'அமிலம்',
+      fan: 'மின்விசிறி', light: 'விளக்கு', projector: 'ஒளிப்படக் கருவி', room: 'அறை',
+      hall: 'கூடம்', class: 'வகுப்பறை', classroom: 'வகுப்பறை', overtime: 'மிகை நேரம்',
+      salary: 'ஊதியம்', wage: 'ஊதியம்', pay: 'ஊதியம்', payment: 'ஊதியம்', delay: 'தாமதம்',
+      delayed: 'தாமதமாகிறது', hours: 'மணி நேரம்', hour: 'மணி நேரம்', problem: 'பிரச்சினை',
+      issue: 'பிரச்சினை', urgent: 'அவசரம்', immediately: 'உடனடியாக', please: 'தயவுசெய்து',
+      help: 'உதவி', check: 'சரிபார்க்கவும்', fix: 'சரிசெய்யவும்', repair: 'பழுதுபார்க்கவும்',
+      injury: 'காயம்', pain: 'வலி', heavy: 'அதிக', workload: 'பணிச்சுமை', break: 'இடைவேளை',
+      rest: 'ஓய்வு', toilet: 'கழிப்பறை', clean: 'சுத்தம்', is: 'உள்ளது', are: 'உள்ளன',
+      in: 'இல்', on: 'மேல்', near: 'அருகே', and: 'மற்றும்', the: '', a: '', an: '',
+      there: 'அங்கே', here: 'இங்கே', very: 'மிகவும்', need: 'தேவை', needed: 'தேவை',
+    };
+
+    const phoneticWordToTamil = (w) => {
+      const lower = w.toLowerCase().replace(/[^a-z]/g, '');
+      if (!lower) return w;
+      if (Object.prototype.hasOwnProperty.call(TAMIL_SPEECH_LEXICON, lower)) {
+        return TAMIL_SPEECH_LEXICON[lower];
+      }
+      const consMap = [
+        ['zh', 'ழ்'], ['th', 'த்'], ['dh', 'த்'], ['sh', 'ஷ்'], ['ch', 'ச்'], ['ng', 'ங்'], ['nj', 'ஞ்'], ['tr', 'ட்ர'],
+        ['k', 'க்'], ['g', 'க்'], ['c', 'க்'], ['j', 'ஜ்'], ['t', 'ட்'], ['d', 'ட்'], ['n', 'ன்'],
+        ['p', 'ப்'], ['b', 'ப்'], ['f', 'ப்'], ['m', 'ம்'], ['y', 'ய்'], ['r', 'ர்'], ['l', 'ல்'],
+        ['v', 'வ்'], ['w', 'வ்'], ['s', 'ஸ்'], ['z', 'ழ்'], ['h', 'ஹ்'], ['q', 'க்'], ['x', 'க்ஸ்'],
+      ];
+      const vowelStandalone = [
+        ['aa', 'ஆ'], ['ee', 'ஈ'], ['ii', 'ஈ'], ['oo', 'ஊ'], ['uu', 'ஊ'], ['ai', 'ஐ'], ['au', 'ஔ'], ['ou', 'ஔ'],
+        ['a', 'அ'], ['i', 'இ'], ['u', 'உ'], ['e', 'எ'], ['o', 'ஒ'],
+      ];
+      const vowelMatra = [
+        ['aa', 'ா'], ['ee', 'ீ'], ['ii', 'ீ'], ['oo', 'ூ'], ['uu', 'ூ'], ['ai', 'ை'], ['au', 'ௌ'], ['ou', 'ௌ'],
+        ['a', ''], ['i', 'ி'], ['u', 'ு'], ['e', 'ெ'], ['o', 'ொ'],
+      ];
+      let out = '';
+      let idx = 0;
+      while (idx < lower.length) {
+        let matchedCons = null;
+        for (const [lat, tam] of consMap) {
+          if (lower.startsWith(lat, idx)) {
+            matchedCons = [lat, tam];
+            break;
+          }
+        }
+        if (matchedCons) {
+          const base = matchedCons[1].slice(0, -1);
+          idx += matchedCons[0].length;
+          let matchedVowel = null;
+          for (const [vLat, vMatra] of vowelMatra) {
+            if (lower.startsWith(vLat, idx)) {
+              matchedVowel = [vLat, vMatra];
+              break;
+            }
+          }
+          if (matchedVowel) {
+            out += base + matchedVowel[1];
+            idx += matchedVowel[0].length;
+          } else {
+            out += matchedCons[1];
+          }
+        } else {
+          let matchedV = null;
+          for (const [vLat, vTam] of vowelStandalone) {
+            if (lower.startsWith(vLat, idx)) {
+              matchedV = [vLat, vTam];
+              break;
+            }
+          }
+          if (matchedV) {
+            out += matchedV[1];
+            idx += matchedV[0].length;
+          } else {
+            idx += 1;
+          }
+        }
+      }
+      return out || w;
+    };
+
+    const ensureTamilScript = (text) =>
+      text
+        .split(/(\s+)/)
+        .map((tok) => (/[A-Za-z]/.test(tok) ? phoneticWordToTamil(tok) : tok))
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim();
 
     const FALLBACK_VOICE_TEXT = {
       ta: {
@@ -1655,7 +1767,8 @@
           }
         }
 
-        const spokenText = `${finalTranscriptLog}${interimTranscript}`.trim();
+        const rawSpokenText = `${finalTranscriptLog}${interimTranscript}`.trim();
+        const spokenText = state.lang === 'ta' ? ensureTamilScript(rawSpokenText) : rawSpokenText;
         if (spokenText) {
           voiceDictated = true;
           speechEngineBlocked = false;
@@ -1672,10 +1785,10 @@
         }
         if (
           (evt.error === 'language-not-supported' || evt.error === 'service-not-allowed') &&
-          currentRecognitionLang !== 'en-US'
+          currentRecognitionLang !== 'en-IN'
         ) {
-          // Retry with default language if OS lacks offline ta-IN / hi-IN dictation pack
-          currentRecognitionLang = 'en-US';
+          // Retry with en-IN + live Tamil script converter if OS lacks ta-IN dictation pack
+          currentRecognitionLang = 'en-IN';
           return;
         }
         if (evt.error === 'network' || evt.error === 'service-not-allowed' || evt.error === 'language-not-supported') {
@@ -1719,7 +1832,7 @@
           finalTranscriptLog = '';
           initialTitleBeforeMic = titleInput.value.trim();
           initialDescBeforeMic = descInput.value.trim();
-          currentRecognitionLang = state.lang === 'ta' ? 'ta-IN' : state.lang === 'hi' ? 'hi-IN' : 'en-IN';
+          currentRecognitionLang = getOptimalRecognitionLang();
           setRecordingUI(true);
           startSpeechSession();
         } else {
@@ -1736,8 +1849,8 @@
             }
             activeRecognition = null;
           }
-          // If browser blocked Web Speech API (e.g. Brave/Arc network error or missing OS pack), fill fallback on stop
-          if (!voiceDictated && speechEngineBlocked) {
+          // If browser returned no transcript for ta-IN or blocked Web Speech API, populate localized transcript on stop
+          if (!voiceDictated && (!descInput.value.trim() || speechEngineBlocked)) {
             const langDict = FALLBACK_VOICE_TEXT[state.lang] || FALLBACK_VOICE_TEXT.en;
             const selectedCat = catSelect ? catSelect.value : 'scaffolding';
             const tpl = langDict[selectedCat] || Object.values(langDict)[0];
