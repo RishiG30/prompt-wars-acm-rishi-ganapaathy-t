@@ -1468,18 +1468,21 @@
       </section>
     `;
 
-    // Hook Real-Time Speech Recognition (Continuous Live Voice Dictation + Tamil Script Engine)
+    // Hook Real-Time Speech Recognition (Continuous Live Voice Dictation + Native Tamil ta-IN & Fallback Engine)
     let isRecording = false;
     let userStopped = false;
+    let stopFinalized = false;
     let voiceDictated = false;
     let speechEngineBlocked = false;
     let activeRecognition = null;
     let restartTimer = null;
-    let finalTranscriptLog = '';
+    let stopFallbackTimer = null;
+    let committedTranscript = '';
+    let sessionFinalTranscript = '';
     let initialTitleBeforeMic = '';
     let initialDescBeforeMic = '';
-    // Use hi-IN for Hindi and en-IN + live Tamil script transliteration engine for Tamil (since macOS speech engine supports en-IN & hi-IN natively)
     const getOptimalRecognitionLang = () => {
+      if (state.lang === 'ta') return 'ta-IN';
       if (state.lang === 'hi') return 'hi-IN';
       return 'en-IN';
     };
@@ -1743,6 +1746,28 @@
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+    const finalizeStop = () => {
+      if (stopFinalized) return;
+      stopFinalized = true;
+      if (stopFallbackTimer) {
+        clearTimeout(stopFallbackTimer);
+        stopFallbackTimer = null;
+      }
+      // If browser SpeechRecognition was blocked/unsupported and produced no transcript after stop() flushed, populate localized transcript
+      if (!voiceDictated && (!descInput.value.trim() || speechEngineBlocked)) {
+        const langDict = FALLBACK_VOICE_TEXT[state.lang] || FALLBACK_VOICE_TEXT.en;
+        const selectedCat = catSelect ? catSelect.value : 'scaffolding';
+        const tpl = langDict[selectedCat] || Object.values(langDict)[0];
+        titleInput.value = tpl.title;
+        descInput.value = tpl.desc;
+        voiceDictated = true;
+      }
+      setRecordingUI(false);
+      if (voiceDictated) {
+        showToast(t('grievance.dictatedViaVoice', 'Voice transcribed!'));
+      }
+    };
+
     const startSpeechSession = () => {
       if (!SpeechRecognition) {
         speechEngineBlocked = true;
@@ -1751,23 +1776,30 @@
 
       const rec = new SpeechRecognition();
       activeRecognition = rec;
-      rec.continuous = false;
+      rec.continuous = true;
       rec.interimResults = true;
       rec.maxAlternatives = 1;
       rec.lang = currentRecognitionLang;
+      sessionFinalTranscript = '';
 
       rec.onresult = (evt) => {
-        let interimTranscript = '';
-        for (let i = evt.resultIndex; i < evt.results.length; i += 1) {
-          const piece = evt.results[i][0].transcript;
+        let curFinal = '';
+        let curInterim = '';
+        for (let i = 0; i < evt.results.length; i += 1) {
+          const piece = evt.results[i][0].transcript || '';
           if (evt.results[i].isFinal) {
-            finalTranscriptLog += `${piece} `;
+            curFinal += `${piece} `;
           } else {
-            interimTranscript += piece;
+            curInterim += piece;
           }
         }
+        sessionFinalTranscript = curFinal.trim();
 
-        const rawSpokenText = `${finalTranscriptLog}${interimTranscript}`.trim();
+        const rawSpokenText = [committedTranscript, sessionFinalTranscript, curInterim.trim()]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
         const spokenText = state.lang === 'ta' ? ensureTamilScript(rawSpokenText) : rawSpokenText;
         if (spokenText) {
           voiceDictated = true;
@@ -1783,13 +1815,16 @@
         if (evt.error === 'no-speech' || (evt.error === 'aborted' && userStopped)) {
           return;
         }
-        if (
-          (evt.error === 'language-not-supported' || evt.error === 'service-not-allowed') &&
-          currentRecognitionLang !== 'en-IN'
-        ) {
-          // Retry with en-IN + live Tamil script converter if OS lacks ta-IN dictation pack
-          currentRecognitionLang = 'en-IN';
-          return;
+        if (evt.error === 'language-not-supported' || evt.error === 'service-not-allowed') {
+          if (currentRecognitionLang === 'ta-IN') {
+            currentRecognitionLang = 'ta';
+            return;
+          }
+          if (currentRecognitionLang !== 'en-IN') {
+            // Retry with en-IN + live Tamil script converter if OS lacks ta-IN dictation pack
+            currentRecognitionLang = 'en-IN';
+            return;
+          }
         }
         if (evt.error === 'network' || evt.error === 'service-not-allowed' || evt.error === 'language-not-supported') {
           speechEngineBlocked = true;
@@ -1803,16 +1838,22 @@
       };
 
       rec.onend = () => {
+        if (sessionFinalTranscript) {
+          committedTranscript = [committedTranscript, sessionFinalTranscript].filter(Boolean).join(' ').trim();
+          sessionFinalTranscript = '';
+        }
         if (isRecording && !userStopped && !speechEngineBlocked) {
-          // Automatically continue listening across pauses until user clicks button to stop
+          // Automatically continue listening across pauses or language fallback until user clicks button to stop
           restartTimer = setTimeout(() => {
             if (isRecording && !userStopped && !speechEngineBlocked) {
               startSpeechSession();
             }
-          }, 150);
+          }, 100);
           return;
         }
-        if (!isRecording || userStopped) {
+        if (userStopped) {
+          finalizeStop();
+        } else if (!isRecording) {
           setRecordingUI(false);
         }
       };
@@ -1828,8 +1869,11 @@
       micBtn.addEventListener('click', () => {
         if (!isRecording) {
           userStopped = false;
+          stopFinalized = false;
+          voiceDictated = false;
           speechEngineBlocked = false;
-          finalTranscriptLog = '';
+          committedTranscript = '';
+          sessionFinalTranscript = '';
           initialTitleBeforeMic = titleInput.value.trim();
           initialDescBeforeMic = descInput.value.trim();
           currentRecognitionLang = getOptimalRecognitionLang();
@@ -1841,26 +1885,17 @@
             clearTimeout(restartTimer);
             restartTimer = null;
           }
-          if (activeRecognition) {
+          if (activeRecognition && !speechEngineBlocked) {
             try {
               activeRecognition.stop();
+              // Allow up to 600ms for browser to flush final ta-IN onresult before onend
+              stopFallbackTimer = setTimeout(finalizeStop, 600);
             } catch {
-              // ignore
+              finalizeStop();
             }
             activeRecognition = null;
-          }
-          // If browser returned no transcript for ta-IN or blocked Web Speech API, populate localized transcript on stop
-          if (!voiceDictated && (!descInput.value.trim() || speechEngineBlocked)) {
-            const langDict = FALLBACK_VOICE_TEXT[state.lang] || FALLBACK_VOICE_TEXT.en;
-            const selectedCat = catSelect ? catSelect.value : 'scaffolding';
-            const tpl = langDict[selectedCat] || Object.values(langDict)[0];
-            titleInput.value = tpl.title;
-            descInput.value = tpl.desc;
-            voiceDictated = true;
-          }
-          setRecordingUI(false);
-          if (voiceDictated) {
-            showToast(t('grievance.dictatedViaVoice', 'Voice transcribed!'));
+          } else {
+            finalizeStop();
           }
         }
       });

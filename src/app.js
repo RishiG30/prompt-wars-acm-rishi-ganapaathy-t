@@ -82,7 +82,12 @@ const publicDir = path.join(__dirname, '..', 'public');
 app.use(
   express.static(publicDir, {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : '0',
-    etag: true,
+    etag: false,
+    setHeaders: (res) => {
+      if (process.env.NODE_ENV !== 'production') {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      }
+    },
   })
 );
 
