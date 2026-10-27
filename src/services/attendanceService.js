@@ -22,6 +22,17 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 }
 
 /**
+ * Format duration in seconds to HH:MM:SS
+ */
+function formatDurationHMS(totalSeconds) {
+  const sec = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+  const hrs = String(Math.floor(sec / 3600)).padStart(2, '0');
+  const mins = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+  const secs = String(sec % 60).padStart(2, '0');
+  return `${hrs}:${mins}:${secs}`;
+}
+
+/**
  * Calculate regular and overtime hours given check-in/out timestamps and standard day hours
  */
 function calculateShiftHours(checkIn, checkOut, standardHours = 8) {
@@ -31,12 +42,23 @@ function calculateShiftHours(checkIn, checkOut, standardHours = 8) {
     throw new Error('Invalid check-in or check-out timestamp');
   }
 
-  const rawHours = (outMs - inMs) / (1000 * 60 * 60);
-  const totalHours = Math.round(rawHours * 100) / 100;
+  const elapsedMs = outMs - inMs;
+  const rawHours = elapsedMs / (1000 * 60 * 60);
+  let totalHours = Math.round(rawHours * 100) / 100;
+  if (elapsedMs > 0 && totalHours === 0) {
+    totalHours = Math.max(0.01, Math.round(rawHours * 10000) / 10000);
+  }
   const regularHours = Math.min(totalHours, standardHours);
   const overtimeHours = Math.max(0, Math.round((totalHours - regularHours) * 100) / 100);
+  const durationSeconds = Math.max(0, Math.round(elapsedMs / 1000));
 
-  return { totalHours, regularHours, overtimeHours };
+  return {
+    totalHours,
+    regularHours,
+    overtimeHours,
+    durationSeconds,
+    durationFormatted: formatDurationHMS(durationSeconds),
+  };
 }
 
 class AttendanceService {
@@ -126,23 +148,9 @@ class AttendanceService {
     const industryConfig = getIndustryConfig(user ? user.industry : active.industry);
     const standardHours = industryConfig.wageRules.standardDayHours || 8;
 
-    // If checking out within seconds during a live demo, simulate a realistic shift duration (e.g. 9.5 hours = 8h reg + 1.5h OT)
-    // unless an explicit checkOutTime was passed.
-    const inMs = new Date(active.checkIn).getTime();
-    const nowMs = Date.now();
-    let effectiveCheckOut = checkOutTime;
+    const effectiveCheckOut = checkOutTime || new Date().toISOString();
 
-    if (!effectiveCheckOut) {
-      const elapsedSeconds = (nowMs - inMs) / 1000;
-      if (elapsedSeconds >= 1 && elapsedSeconds < 300) {
-        // Live interactive browser demo: simulate a full 9.5h shift (8h regular + 1.5h OT) so the user immediately sees overtime math in action!
-        effectiveCheckOut = new Date(inMs + 9.5 * 60 * 60 * 1000).toISOString();
-      } else {
-        effectiveCheckOut = new Date(nowMs).toISOString();
-      }
-    }
-
-    const { totalHours, regularHours, overtimeHours } = calculateShiftHours(
+    const { totalHours, regularHours, overtimeHours, durationSeconds, durationFormatted } = calculateShiftHours(
       active.checkIn,
       effectiveCheckOut,
       standardHours
@@ -154,6 +162,8 @@ class AttendanceService {
       totalHours,
       regularHours,
       overtimeHours,
+      durationSeconds,
+      durationFormatted,
     });
 
     return updated;

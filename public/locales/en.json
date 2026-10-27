@@ -58,7 +58,8 @@
     "regularHours": "Standard Hours",
     "overtimeHours": "Overtime Hours (OT)",
     "history": "Recent Shift Log",
-    "noHistory": "No completed shifts recorded yet."
+    "noHistory": "No completed shifts recorded yet.",
+    "liveTimerLabel": "Live Shift Timer"
   },
   "payslip": {
     "title": "Transparent Payslip",
@@ -97,6 +98,9 @@
     "sevBadgeHigh": "HIGH",
     "sevBadgeCritical": "CRITICAL",
     "attachPhoto": "Attach Photo Proof",
+    "photoAttached": "Photo Attached",
+    "viewPhotoBtn": "View Photo Proof",
+    "removePhotoBtn": "Remove",
     "submitBtn": "Submit Report",
     "myReports": "Status Tracker",
     "noReports": "No safety reports submitted yet.",

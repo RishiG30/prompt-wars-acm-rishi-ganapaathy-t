@@ -58,7 +58,8 @@
     "regularHours": "सामान्य कार्य घंटे",
     "overtimeHours": "ओवरटाइम घंटे",
     "history": "हालिया शिफ्ट रिकॉर्ड",
-    "noHistory": "अभी तक कोई पूर्ण शिफ्ट दर्ज नहीं हुई है।"
+    "noHistory": "अभी तक कोई पूर्ण शिफ्ट दर्ज नहीं हुई है।",
+    "liveTimerLabel": "लाइव शिफ्ट टाइमर"
   },
   "payslip": {
     "title": "पारदर्शी वेतन पर्ची",
@@ -97,6 +98,9 @@
     "sevBadgeHigh": "उच्च",
     "sevBadgeCritical": "अति गंभीर",
     "attachPhoto": "फ़ोटो प्रमाण जोड़ें",
+    "photoAttached": "फ़ोटो संलग्न है",
+    "viewPhotoBtn": "फ़ोटो प्रमाण देखें",
+    "removePhotoBtn": "हटाएं",
     "submitBtn": "शिकायत सबमिट करें",
     "myReports": "शिकायत स्थिति ट्रैकर",
     "noReports": "अभी तक कोई सुरक्षा शिकायत दर्ज नहीं की गई है।",

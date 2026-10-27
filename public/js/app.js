@@ -561,11 +561,75 @@
     });
   }
 
+  let shiftTimerInterval = null;
+
+  function clearShiftTimer() {
+    if (shiftTimerInterval) {
+      clearInterval(shiftTimerInterval);
+      shiftTimerInterval = null;
+    }
+  }
+
+  function formatDurationHMS(totalSeconds) {
+    const sec = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+    const hrs = String(Math.floor(sec / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+    const secs = String(sec % 60).padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getHazardEvidenceImage(g) {
+    if (g && g.photoUrl) return g.photoUrl;
+    const sevColor = g?.severity === 'critical' ? '#dc2626' : g?.severity === 'high' ? '#d97706' : '#2563eb';
+    const localeCode = state.lang === 'ta' ? 'ta-IN' : state.lang === 'hi' ? 'hi-IN' : 'en-US';
+    const safeTitle = escapeHtml((g?.title || t('grievance.title', 'Safety Hazard')).slice(0, 48));
+    const safeCat = escapeHtml(trDynamic(g?.categoryLabel || g?.category || ''));
+    const safeDate = g?.submittedAt ? new Date(g.submittedAt).toLocaleString(localeCode) : new Date().toLocaleString(localeCode);
+    const badgeLabel = escapeHtml(t('grievance.viewPhotoBtn', 'Photo Proof'));
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="420" viewBox="0 0 720 420">
+      <rect width="720" height="420" rx="16" fill="#0f172a"/>
+      <rect x="20" y="20" width="680" height="380" rx="12" fill="#1e293b" stroke="${sevColor}" stroke-width="4"/>
+      <circle cx="90" cy="95" r="36" fill="${sevColor}" opacity="0.2"/>
+      <text x="90" y="108" font-size="38" text-anchor="middle">⚠️</text>
+      <text x="145" y="85" fill="#f8fafc" font-family="sans-serif" font-size="22" font-weight="bold">${safeCat}</text>
+      <text x="145" y="115" fill="#94a3b8" font-family="sans-serif" font-size="15">${escapeHtml(safeDate)}</text>
+      <line x1="50" y1="150" x2="670" y2="150" stroke="#334155" stroke-width="2"/>
+      <rect x="50" y="175" width="620" height="145" rx="10" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+      <text x="75" y="225" fill="#e2e8f0" font-family="sans-serif" font-size="20" font-weight="bold">${safeTitle}</text>
+      <text x="75" y="270" fill="#cbd5e1" font-family="sans-serif" font-size="15">${escapeHtml((g?.description || '').slice(0, 75))}</text>
+      <rect x="50" y="340" width="260" height="36" rx="6" fill="${sevColor}"/>
+      <text x="180" y="364" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle">${badgeLabel}</text>
+    </svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  function openHazardImageModal(photoUrl, title) {
+    if (!photoUrl) return;
+    openModal(
+      `🖼️ ${escapeHtml(title || t('grievance.viewPhotoBtn', 'Photo Proof'))}`,
+      `
+        <div style="text-align:center; background:#0f172a; padding:14px; border-radius:10px;">
+          <img src="${photoUrl}" alt="${escapeHtml(title || 'Hazard Photo')}" style="max-width:100%; max-height:70vh; border-radius:8px; object-fit:contain; display:block; margin:0 auto;" />
+        </div>
+      `
+    );
+  }
+
   /**
    * Render Current Tab View
    */
   async function renderCurrentView() {
     window.speechSynthesis?.cancel();
+    clearShiftTimer();
 
     if (!state.token || !state.user) {
       renderLoginPortalsView();
@@ -1030,6 +1094,14 @@
               <p style="margin: 8px 0; color: var(--text-muted); font-size:0.9rem;">
                 📍 ${t('attendance.siteVerifiedLabel', 'Site Code verified')}: <code>${trDynamic(state.activeShift.siteCode)}</code>
               </p>
+              <div style="background:#ecfdf5; border:2px solid #10b981; border-radius:10px; padding:14px; margin:14px 0; text-align:center;">
+                <div style="font-size:0.85rem; font-weight:700; color:#047857; text-transform:uppercase; letter-spacing:0.5px;">
+                  ⏱️ ${t('attendance.liveTimerLabel', 'Live Shift Timer')}
+                </div>
+                <div id="live-shift-timer-display" style="font-size:2.25rem; font-weight:900; font-family:monospace; color:#065f46; margin-top:4px; letter-spacing:2px;">
+                  00:00:00
+                </div>
+              </div>
               <div style="margin-top: 16px;">
                 <button id="btn-checkout" class="btn-primary" style="background: #dc2626; border-color:#dc2626; width: 100%; padding: 14px; font-size: 1.1rem;">
                   🛑 ${t('attendance.checkOut', 'Complete Shift (Check Out)')}
@@ -1106,7 +1178,9 @@
                       <tr style="border-bottom: 1px solid var(--border);">
                         <td style="padding: 10px 8px; font-weight:600;">${s.date}</td>
                         <td style="padding: 10px 8px;">${trDynamic(s.shiftName)}</td>
-                        <td style="padding: 10px 8px; font-weight:700;">${s.totalHours} ${hrUnit}</td>
+                        <td style="padding: 10px 8px; font-weight:700;">
+                          ${s.durationFormatted ? `<span style="font-family:monospace; color:#047857;">${s.durationFormatted}</span> <small style="color:var(--text-muted);">(${s.totalHours} ${hrUnit})</small>` : `${s.totalHours} ${hrUnit}`}
+                        </td>
                         <td style="padding: 10px 8px;">${s.regularHours} ${hrUnit}</td>
                         <td style="padding: 10px 8px; color: ${s.overtimeHours > 0 ? '#b45309' : 'inherit'}; font-weight:${s.overtimeHours > 0 ? '700' : 'normal'};">
                           ${s.overtimeHours > 0 ? `+${s.overtimeHours} ${hrUnit} (${otUnit})` : `0 ${hrUnit}`}
@@ -1149,6 +1223,20 @@
       });
     }
 
+    // Start Live Running Shift Stopwatch if shift is active
+    clearShiftTimer();
+    if (hasActive && state.activeShift?.checkIn) {
+      const timerEl = document.getElementById('live-shift-timer-display');
+      const startMs = new Date(state.activeShift.checkIn).getTime();
+      const tickShiftTimer = () => {
+        if (!timerEl) return;
+        const elapsedSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+        timerEl.textContent = formatDurationHMS(elapsedSec);
+      };
+      tickShiftTimer();
+      shiftTimerInterval = setInterval(tickShiftTimer, 1000);
+    }
+
     const checkInBtn = document.getElementById('btn-checkin');
     if (checkInBtn) {
       checkInBtn.addEventListener('click', async () => {
@@ -1172,9 +1260,11 @@
     if (checkOutBtn) {
       checkOutBtn.addEventListener('click', async () => {
         try {
+          clearShiftTimer();
           const res = await api('/api/attendance/check-out', { method: 'POST' });
           state.activeShift = null;
-          showToast(`${t('attendance.checkOut', 'Shift completed')}: ${res.shift.totalHours} ${hrUnit} (${res.shift.overtimeHours} ${hrUnit} ${otUnit})`);
+          const timeStr = res.shift.durationFormatted || `${res.shift.totalHours} ${hrUnit}`;
+          showToast(`${t('attendance.checkOut', 'Shift completed')}: ${timeStr} (${res.shift.overtimeHours} ${hrUnit} ${otUnit})`);
           renderCurrentView();
         } catch (e) {
           console.error(e);
@@ -1397,6 +1487,13 @@
             <div class="form-group">
               <label class="form-label" for="grv-photo">📷 ${t('grievance.attachPhoto', 'Attach Photo Proof')} (${t('common.optional', 'Optional')}):</label>
               <input id="grv-photo" class="form-control" type="file" accept="image/*" />
+              <div id="grv-photo-preview-box" style="display:none; margin-top:10px; background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.85rem; font-weight:700; color:#059669;">✅ ${t('grievance.photoAttached', 'Photo Attached')}</span>
+                  <button id="btn-remove-photo" type="button" class="pill-btn" style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; padding:2px 8px; font-size:0.8rem; cursor:pointer;">✕ ${t('grievance.removePhotoBtn', 'Remove')}</button>
+                </div>
+                <img id="grv-photo-preview-img" src="" alt="Preview" style="max-height:180px; max-width:100%; border-radius:6px; object-fit:contain; cursor:pointer; display:block;" />
+              </div>
             </div>
 
             <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; font-size:1.05rem;">
@@ -1430,6 +1527,13 @@
                   ${g.voiceInputUsed ? ` | 🎙️ <em>${t('grievance.dictatedViaVoice', 'Dictated via voice')}</em>` : ''}
                 </div>
                 <p style="margin: 8px 0; font-size:0.95rem; line-height:1.4;">${g.description}</p>
+
+                <div style="margin: 10px 0; display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#ffffff; border:1px solid var(--border); padding:8px 10px; border-radius:8px;">
+                  <img src="${getHazardEvidenceImage(g)}" alt="${escapeHtml(g.title)}" class="btn-view-hazard-photo" data-grv-id="${g.id}" style="height:64px; width:96px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" />
+                  <button type="button" class="pill-btn btn-view-hazard-photo" data-grv-id="${g.id}" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:6px 12px; font-weight:700; cursor:pointer;">
+                    🖼️ ${t('grievance.viewPhotoBtn', 'View Photo Proof')}
+                  </button>
+                </div>
 
                 <!-- Visual 4-Step Progress Tracker -->
                 <div class="timeline" aria-label="Progress Tracker">
@@ -1901,6 +2005,84 @@
       });
     }
 
+    // Photo Input Reading & Compression + Preview
+    let attachedPhotoDataUrl = null;
+    const photoInput = document.getElementById('grv-photo');
+    const previewBox = document.getElementById('grv-photo-preview-box');
+    const previewImg = document.getElementById('grv-photo-preview-img');
+    const removePhotoBtn = document.getElementById('btn-remove-photo');
+
+    if (photoInput) {
+      photoInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const rawDataUrl = ev.target.result;
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 900;
+            let { width, height } = img;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            attachedPhotoDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            if (previewImg && previewBox) {
+              previewImg.src = attachedPhotoDataUrl;
+              previewBox.style.display = 'block';
+            }
+          };
+          img.onerror = () => {
+            attachedPhotoDataUrl = rawDataUrl;
+            if (previewImg && previewBox) {
+              previewImg.src = attachedPhotoDataUrl;
+              previewBox.style.display = 'block';
+            }
+          };
+          img.src = rawDataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (removePhotoBtn) {
+      removePhotoBtn.addEventListener('click', () => {
+        attachedPhotoDataUrl = null;
+        if (photoInput) photoInput.value = '';
+        if (previewBox) previewBox.style.display = 'none';
+        if (previewImg) previewImg.src = '';
+      });
+    }
+
+    if (previewImg) {
+      previewImg.addEventListener('click', () => {
+        if (attachedPhotoDataUrl) {
+          openHazardImageModal(attachedPhotoDataUrl, document.getElementById('grv-title')?.value || '');
+        }
+      });
+    }
+
+    document.querySelectorAll('.btn-view-hazard-photo').forEach((elBtn) => {
+      elBtn.addEventListener('click', () => {
+        const id = elBtn.getAttribute('data-grv-id');
+        const grv = grievances.find((item) => item.id === id);
+        if (grv) {
+          openHazardImageModal(getHazardEvidenceImage(grv), grv.title);
+        }
+      });
+    });
+
     // Submit Grievance
     const form = document.getElementById('grievance-form');
     form.addEventListener('submit', async (e) => {
@@ -1910,6 +2092,7 @@
         title: document.getElementById('grv-title').value,
         description: document.getElementById('grv-description').value,
         severity: document.getElementById('grv-severity').value,
+        photoUrl: attachedPhotoDataUrl,
         voiceInputUsed: voiceDictated,
       };
 
@@ -2120,6 +2303,12 @@
                     ${t('admin.filedBy', 'Filed by')}: <strong>${trDynamic(g.workerName)}</strong> (${trDynamic(g.department || '')}) - ${new Date(g.submittedAt).toLocaleDateString(localeCode)}
                   </div>
                   <p style="font-size:0.9rem;">${g.description}</p>
+                  <div style="margin-top:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <img src="${getHazardEvidenceImage(g)}" alt="${escapeHtml(g.title)}" class="btn-dash-hazard-photo" data-grv-id="${g.id}" style="height:56px; width:84px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" />
+                    <button type="button" class="pill-btn btn-dash-hazard-photo" data-grv-id="${g.id}" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:5px 10px; font-size:0.85rem; font-weight:700; cursor:pointer;">
+                      🖼️ ${t('grievance.viewPhotoBtn', 'View Photo Proof')}
+                    </button>
+                  </div>
                 </div>
               `
                   )
@@ -2128,6 +2317,16 @@
         </div>
       </section>
     `;
+
+    document.querySelectorAll('.btn-dash-hazard-photo').forEach((elBtn) => {
+      elBtn.addEventListener('click', () => {
+        const id = elBtn.getAttribute('data-grv-id');
+        const grv = (dash.openGrievances || []).find((item) => item.id === id);
+        if (grv) {
+          openHazardImageModal(getHazardEvidenceImage(grv), grv.title);
+        }
+      });
+    });
   }
 
   // =========================================================================
@@ -2168,7 +2367,14 @@
                 <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
                   ${t('common.worker', 'Worker')}: <strong>${trDynamic(g.workerName)}</strong> | ${t('grievance.category', 'Category')}: <strong>${trDynamic(g.categoryLabel)}</strong> | ${t('grievance.severity', 'Severity')}: <strong>${trSeverity(g.severity)}</strong>
                 </div>
-                <p style="margin-bottom:12px;">${g.description}</p>
+                <p style="margin-bottom:10px;">${g.description}</p>
+
+                <div style="margin-bottom:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; background:#f8fafc; border:1px solid var(--border); padding:10px; border-radius:8px;">
+                  <img src="${getHazardEvidenceImage(g)}" alt="${escapeHtml(g.title)}" class="btn-admin-hazard-photo" data-grv-id="${g.id}" style="height:72px; width:108px; object-fit:cover; border-radius:6px; border:1px solid #cbd5e1; cursor:pointer;" />
+                  <button type="button" class="pill-btn btn-admin-hazard-photo" data-grv-id="${g.id}" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:7px 14px; font-weight:700; cursor:pointer;">
+                    🖼️ ${t('grievance.viewPhotoBtn', 'View Photo Proof')}
+                  </button>
+                </div>
 
                 ${
                   g.replies && g.replies.length > 0
@@ -2199,6 +2405,16 @@
         }
       </section>
     `;
+
+    document.querySelectorAll('.btn-admin-hazard-photo').forEach((elBtn) => {
+      elBtn.addEventListener('click', () => {
+        const id = elBtn.getAttribute('data-grv-id');
+        const grv = grievances.find((item) => item.id === id);
+        if (grv) {
+          openHazardImageModal(getHazardEvidenceImage(grv), grv.title);
+        }
+      });
+    });
 
     document.querySelectorAll('.btn-update-grv').forEach((btn) => {
       btn.addEventListener('click', async () => {
