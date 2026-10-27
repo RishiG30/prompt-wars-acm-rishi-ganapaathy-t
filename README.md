@@ -169,18 +169,3 @@ Visit **`http://localhost:8080`** in your browser.
 
 ---
 
-## 10. LinkedIn Post Draft
-
-> 🏗️ **Introducing FairShift: Reimagining Decent Work for Frontline Organisations (UN SDG 8)**
->
-> Millions of workers in construction yards, colleges, and factories still navigate opaque registers, delayed overtime payments, and unaddressed safety hazards. Most speak regional languages and use basic smartphones, leaving them with little visibility into how their pay was calculated or where their complaints went.
->
-> That's why we built **FairShift**:
-> 
-> 🔹 **Site Code & Geofenced Attendance**: Instant clock-in with automated standard vs. overtime hours calculation.  
-> 🔹 **Transparent Payslips + Voice Read-Aloud**: Itemized earnings breakdown with a plain-language "Why this amount" explanation in English, Tamil & Hindi with one-tap text-to-speech.  
-> 🔹 **Voice-First Safety Reporting**: Dictate safety hazards directly (Web Speech API) and track status in real-time through an accountable 4-stage lifecycle (`Submitted` → `Acknowledged` → `In Progress` → `Resolved`).  
-> 🔹 **Cryptographic Anonymous Feedback**: Zero worker IDs stored; one-way rate limiting and k-anonymity guarantee workers can speak up safely without fear of reprisal.  
-> 🔹 **Separated Sector Portals & Per-Person Task Folders**: Dedicated Construction Site and College Campus login portals with personal task folders for every worker.
->
-> #Hackathon #SDG8 #DecentWork #NodeJS #WebAccessibility #CivicTech
