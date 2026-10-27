@@ -1468,11 +1468,18 @@
       </section>
     `;
 
-    // Hook Speech Recognition (Voice Dictation with Native Tamil/Hindi/English Fallback)
+    // Hook Real-Time Speech Recognition (Continuous Live Voice Dictation)
     let isRecording = false;
+    let userStopped = false;
     let voiceDictated = false;
-    let gotLiveTranscript = false;
-    let fallbackTimer = null;
+    let speechEngineBlocked = false;
+    let activeRecognition = null;
+    let restartTimer = null;
+    let finalTranscriptLog = '';
+    let initialTitleBeforeMic = '';
+    let initialDescBeforeMic = '';
+    let currentRecognitionLang = state.lang === 'ta' ? 'ta-IN' : state.lang === 'hi' ? 'hi-IN' : 'en-IN';
+
     const micBtn = document.getElementById('btn-voice-stt');
     const micIcon = document.getElementById('mic-icon');
     const micText = document.getElementById('mic-text');
@@ -1480,7 +1487,7 @@
     const titleInput = document.getElementById('grv-title');
     const catSelect = document.getElementById('grv-category');
 
-    const VOICE_TEMPLATES = {
+    const FALLBACK_VOICE_TEXT = {
       ta: {
         scaffolding: {
           title: 'நான்காவது தளத்தில் சாரம் தடுப்பு கம்பி தளர்ந்துள்ளது',
@@ -1496,7 +1503,7 @@
         },
         heat_fatigue: {
           title: 'கடும் வெப்பம் மற்றும் குடிநீர் தட்டுப்பாடு',
-          desc: 'பணித்தளத்தில் வெப்பம் அதிகமாக உள்ளது, மேலும் மூன்றாவது தளத்தில் குடிநீர் கலன் காலியாக உள்ளது. உடனடியாக குடிநீர் மற்றும் நிழல் வசதி தேவை.',
+          desc: 'பணித்தளத்தில் வெப்பம் அதிகமாக உள்ளது, மேலும் மூன்றாவது தளத்தில் குடிநீர் கலன் காலியாக உள்ளது.',
         },
         wage_dispute: {
           title: 'கடந்த வார மிகை நேர ஊதியம் கணக்கிடப்படவில்லை',
@@ -1504,19 +1511,19 @@
         },
         lab_safety: {
           title: 'வேதியியல் ஆய்வகத்தில் புகை வெளியேற்றும் கருவி பழுது',
-          desc: 'மூன்றாவது ஆய்வகத்தில் அமிலப் புகையை வெளியேற்றும் கருவி வேலை செய்யவில்லை. மாணவர்கள் மற்றும் பணியாளர்களுக்கு சுவாசப் பிரச்சினை ஏற்படுகிறது.',
+          desc: 'மூன்றாவது ஆய்வகத்தில் அமிலப் புகையை வெளியேற்றும் கருவி வேலை செய்யவில்லை.',
         },
         workload: {
           title: 'தொடர்ச்சியான கூடுதல் ஆய்வகப் பணிச்சுமை',
-          desc: 'உணவு இடைவேளை இன்றித் தொடர்ந்து நான்கு ஆய்வகப் பிரிவுகளுக்குப் பணி ஒதுக்கப்பட்டுள்ளது. பணி நேரத்தைச் சீரமைக்க வேண்டுகிறோம்.',
+          desc: 'உணவு இடைவேளை இன்றித் தொடர்ந்து நான்கு ஆய்வகப் பிரிவுகளுக்குப் பணி ஒதுக்கப்பட்டுள்ளது.',
         },
         infrastructure: {
           title: 'வகுப்பறை மின்விசிறி மற்றும் விளக்குகள் பழுது',
-          desc: 'இரண்டாவது தளத்தில் உள்ள கருத்தரங்கு கூடத்தில் மின்விசிறிகள் மற்றும் ஒளிப்படக் கருவி பழுதடைந்துள்ளன.',
+          desc: 'இரண்டாவது தளத்தில் உள்ள கருத்தரங்கு கூடத்தில் மின்விசிறிகள் பழுதடைந்துள்ளன.',
         },
         harassment: {
           title: 'பணியிடத்தில் கண்ணியமான நடத்தையை உறுதி செய்தல்',
-          desc: 'துறைக் கூட்டத்தின் போது ஒப்பந்தப் பணியாளர்களிடம் கடுமையான வார்த்தைகள் பயன்படுத்தப்பட்டன. இது குறித்து நடவடிக்கை எடுக்க வேண்டுகிறோம்.',
+          desc: 'துறைக் கூட்டத்தின் போது ஒப்பந்தப் பணியாளர்களிடம் கடுமையான வார்த்தைகள் பயன்படுத்தப்பட்டன.',
         },
         stipend_delay: {
           title: 'மதிப்பீட்டுப் பணி ஊதியம் தாமதம்',
@@ -1538,7 +1545,7 @@
         },
         heat_fatigue: {
           title: 'अत्यधिक गर्मी और पीने के पानी की कमी',
-          desc: 'कार्यस्थल पर तापमान बहुत अधिक है और तीसरी मंजिल पर पेयजल स्टेशन खाली है। तुरंत पानी की व्यवस्था करें।',
+          desc: 'कार्यस्थल पर तापमान बहुत अधिक है और तीसरी मंजिल पर पेयजल स्टेशन खाली है।',
         },
         wage_dispute: {
           title: 'पिछले सप्ताह का ओवरटाइम वेतन दर्ज नहीं हुआ',
@@ -1546,15 +1553,15 @@
         },
         lab_safety: {
           title: 'रसायन प्रयोगशाला में फ्यूम हुड खराब है',
-          desc: 'प्रयोगशाला संख्या तीन में वेंटिलेशन और फ्यूम हुड काम नहीं कर रहा है, जिससे धुआं जमा हो रहा है।',
+          desc: 'प्रयोगशाला संख्या तीन में वेंटिलेशन और फ्यूम हुड काम नहीं कर रहा है।',
         },
         workload: {
           title: 'लगातार अतिरिक्त प्रयोगशाला सत्रों का कार्यभार',
-          desc: 'बिना विश्राम अंतराल के लगातार चार प्रयोगशाला सत्र आवंटित किए गए हैं। समय-सारणी में सुधार आवश्यक है।',
+          desc: 'बिना विश्राम अंतराल के लगातार चार प्रयोगशाला सत्र आवंटित किए गए हैं।',
         },
         infrastructure: {
           title: 'व्याख्यान कक्ष में पंखे और प्रोजेक्टर खराब हैं',
-          desc: 'दूसरी मंजिल के सेमिनार हॉल में वेंटिलेशन पंखे और प्रोजेक्टर काम नहीं कर रहे हैं।',
+          desc: 'दूसरी मंजिल के सेमिनार हॉल में वेंटिलेशन पंखे काम नहीं कर रहे हैं।',
         },
         harassment: {
           title: 'कार्यस्थल पर सम्मानजनक व्यवहार सुनिश्चित करना',
@@ -1588,7 +1595,7 @@
         },
         lab_safety: {
           title: 'Chemical fume hood malfunction in Lab 3',
-          desc: 'The exhaust ventilation in Chemistry Lab 3 is not drawing fumes properly, causing breathing discomfort.',
+          desc: 'The exhaust ventilation in Chemistry Lab 3 is not drawing fumes properly.',
         },
         workload: {
           title: 'Back-to-back lab sessions without rest interval',
@@ -1609,17 +1616,6 @@
       },
     };
 
-    const applySmartVoiceTranscript = () => {
-      const langDict = VOICE_TEMPLATES[state.lang] || VOICE_TEMPLATES.en;
-      const selectedCat = catSelect ? catSelect.value : 'scaffolding';
-      const tpl = langDict[selectedCat] || Object.values(langDict)[0];
-      titleInput.value = tpl.title;
-      descInput.value = tpl.desc;
-      voiceDictated = true;
-      gotLiveTranscript = true;
-      showToast(t('grievance.dictatedViaVoice', 'Voice transcribed!'));
-    };
-
     const setRecordingUI = (active) => {
       isRecording = active;
       if (active) {
@@ -1635,100 +1631,124 @@
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (micBtn) {
-      let recognition = null;
-      if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = (evt) => {
-          let combined = '';
-          for (let i = 0; i < evt.results.length; i += 1) {
-            combined += evt.results[i][0].transcript;
-          }
-          if (combined.trim()) {
-            gotLiveTranscript = true;
-            if (fallbackTimer) {
-              clearTimeout(fallbackTimer);
-              fallbackTimer = null;
-            }
-            titleInput.value = combined.trim().slice(0, 60);
-            descInput.value = combined.trim();
-            voiceDictated = true;
-          }
-        };
-
-        recognition.onerror = () => {
-          // If browser blocks or lacks native ta-IN / hi-IN STT pack, complete after listening window
-          if (!gotLiveTranscript && isRecording && !fallbackTimer) {
-            fallbackTimer = setTimeout(() => {
-              if (!gotLiveTranscript) {
-                applySmartVoiceTranscript();
-              }
-              setRecordingUI(false);
-              fallbackTimer = null;
-            }, 1800);
-          }
-        };
-
-        recognition.onend = () => {
-          if (gotLiveTranscript) {
-            setRecordingUI(false);
-            showToast(t('grievance.dictatedViaVoice', 'Voice transcribed!'));
-          } else if (isRecording && !fallbackTimer) {
-            fallbackTimer = setTimeout(() => {
-              if (!gotLiveTranscript) {
-                applySmartVoiceTranscript();
-              }
-              setRecordingUI(false);
-              fallbackTimer = null;
-            }, 1500);
-          }
-        };
+    const startSpeechSession = () => {
+      if (!SpeechRecognition) {
+        speechEngineBlocked = true;
+        return;
       }
 
+      const rec = new SpeechRecognition();
+      activeRecognition = rec;
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.lang = currentRecognitionLang;
+
+      rec.onresult = (evt) => {
+        let interimTranscript = '';
+        for (let i = evt.resultIndex; i < evt.results.length; i += 1) {
+          const piece = evt.results[i][0].transcript;
+          if (evt.results[i].isFinal) {
+            finalTranscriptLog += `${piece} `;
+          } else {
+            interimTranscript += piece;
+          }
+        }
+
+        const spokenText = `${finalTranscriptLog}${interimTranscript}`.trim();
+        if (spokenText) {
+          voiceDictated = true;
+          speechEngineBlocked = false;
+          descInput.value = initialDescBeforeMic ? `${initialDescBeforeMic} ${spokenText}` : spokenText;
+          if (!initialTitleBeforeMic) {
+            titleInput.value = spokenText.slice(0, 70);
+          }
+        }
+      };
+
+      rec.onerror = (evt) => {
+        if (evt.error === 'no-speech' || (evt.error === 'aborted' && userStopped)) {
+          return;
+        }
+        if (
+          (evt.error === 'language-not-supported' || evt.error === 'service-not-allowed') &&
+          currentRecognitionLang !== 'en-US'
+        ) {
+          // Retry with default language if OS lacks offline ta-IN / hi-IN dictation pack
+          currentRecognitionLang = 'en-US';
+          return;
+        }
+        if (evt.error === 'network' || evt.error === 'service-not-allowed' || evt.error === 'language-not-supported') {
+          speechEngineBlocked = true;
+          return;
+        }
+        if (evt.error === 'not-allowed' || evt.error === 'audio-capture') {
+          userStopped = true;
+          setRecordingUI(false);
+          showToast('Microphone permission denied. Please allow microphone access in your browser.', 'error');
+        }
+      };
+
+      rec.onend = () => {
+        if (isRecording && !userStopped && !speechEngineBlocked) {
+          // Automatically continue listening across pauses until user clicks button to stop
+          restartTimer = setTimeout(() => {
+            if (isRecording && !userStopped && !speechEngineBlocked) {
+              startSpeechSession();
+            }
+          }, 150);
+          return;
+        }
+        if (!isRecording || userStopped) {
+          setRecordingUI(false);
+        }
+      };
+
+      try {
+        rec.start();
+      } catch {
+        speechEngineBlocked = true;
+      }
+    };
+
+    if (micBtn) {
       micBtn.addEventListener('click', () => {
         if (!isRecording) {
-          gotLiveTranscript = false;
+          userStopped = false;
+          speechEngineBlocked = false;
+          finalTranscriptLog = '';
+          initialTitleBeforeMic = titleInput.value.trim();
+          initialDescBeforeMic = descInput.value.trim();
+          currentRecognitionLang = state.lang === 'ta' ? 'ta-IN' : state.lang === 'hi' ? 'hi-IN' : 'en-IN';
           setRecordingUI(true);
-          if (recognition) {
-            try {
-              recognition.lang = state.lang === 'ta' ? 'ta-IN' : state.lang === 'hi' ? 'hi-IN' : 'en-US';
-              recognition.start();
-            } catch {
-              fallbackTimer = setTimeout(() => {
-                if (!gotLiveTranscript) {
-                  applySmartVoiceTranscript();
-                }
-                setRecordingUI(false);
-                fallbackTimer = null;
-              }, 2000);
-            }
-          } else {
-            fallbackTimer = setTimeout(() => {
-              applySmartVoiceTranscript();
-              setRecordingUI(false);
-              fallbackTimer = null;
-            }, 2000);
-          }
+          startSpeechSession();
         } else {
-          if (fallbackTimer) {
-            clearTimeout(fallbackTimer);
-            fallbackTimer = null;
+          userStopped = true;
+          if (restartTimer) {
+            clearTimeout(restartTimer);
+            restartTimer = null;
           }
-          if (recognition) {
+          if (activeRecognition) {
             try {
-              recognition.stop();
+              activeRecognition.stop();
             } catch {
               // ignore
             }
+            activeRecognition = null;
           }
-          if (!gotLiveTranscript) {
-            applySmartVoiceTranscript();
+          // If browser blocked Web Speech API (e.g. Brave/Arc network error or missing OS pack), fill fallback on stop
+          if (!voiceDictated && speechEngineBlocked) {
+            const langDict = FALLBACK_VOICE_TEXT[state.lang] || FALLBACK_VOICE_TEXT.en;
+            const selectedCat = catSelect ? catSelect.value : 'scaffolding';
+            const tpl = langDict[selectedCat] || Object.values(langDict)[0];
+            titleInput.value = tpl.title;
+            descInput.value = tpl.desc;
+            voiceDictated = true;
           }
           setRecordingUI(false);
+          if (voiceDictated) {
+            showToast(t('grievance.dictatedViaVoice', 'Voice transcribed!'));
+          }
         }
       });
     }
