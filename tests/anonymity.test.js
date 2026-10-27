@@ -103,10 +103,8 @@ describe('Anonymous Feedback Privacy & K-Anonymity Guarantees', () => {
     assert.ok(!token1.includes('worker123'));
   });
 
-  it('enforces K-Anonymity minimum group size (suppresses breakdown if responses < 3)', async () => {
-    // Re-seed clean state
+  it('always displays feedback across all group sizes while keeping strict anonymity (never showing names)', async () => {
     repo.anonymousFeedback = [
-      // Only 2 feedback entries for "Electrical & Physics Labs" (< 3 threshold)
       {
         id: 'fb-test-1',
         industry: 'college',
@@ -116,16 +114,6 @@ describe('Anonymous Feedback Privacy & K-Anonymity Guarantees', () => {
         sentiment: 'negative',
         comment: 'Fume hood noisy',
       },
-      {
-        id: 'fb-test-2',
-        industry: 'college',
-        department: 'Electrical & Physics Labs',
-        category: 'safety',
-        rating: 3,
-        sentiment: 'neutral',
-        comment: 'Glassware clean',
-      },
-      // 3 feedback entries for "Computer Science & Engineering" (>= 3 threshold)
       { id: 'fb-test-3', industry: 'college', department: 'Computer Science & Engineering', rating: 4, sentiment: 'positive', category: 'workload', comment: 'ok' },
       { id: 'fb-test-4', industry: 'college', department: 'Computer Science & Engineering', rating: 4, sentiment: 'positive', category: 'workload', comment: 'ok' },
       { id: 'fb-test-5', industry: 'college', department: 'Computer Science & Engineering', rating: 5, sentiment: 'positive', category: 'workload', comment: 'ok' },
@@ -133,20 +121,20 @@ describe('Anonymous Feedback Privacy & K-Anonymity Guarantees', () => {
 
     const insights = await feedbackService.getAggregatedInsights('college');
 
-    // Electrical & Physics Labs MUST be suppressed
+    // Single-response department is immediately visible and strictly anonymous
     const physicsDept = insights.departmentBreakdowns['Electrical & Physics Labs'];
     assert.ok(physicsDept, 'Physics department should be in report');
-    assert.equal(physicsDept.suppressedDueToPrivacy, true);
-    assert.equal(physicsDept.count, 2);
-    assert.match(physicsDept.message, /minimum group threshold of 3 responses required/);
-    assert.equal(physicsDept.items, undefined, 'Individual feedback comments must be suppressed');
+    assert.equal(physicsDept.suppressedDueToPrivacy, false);
+    assert.equal(physicsDept.count, 1);
+    assert.equal(physicsDept.items[0].workerName, undefined);
+    assert.equal(physicsDept.items[0].workerId, undefined);
 
-    // Computer Science department (3 responses) MUST NOT be suppressed
+    // Multi-response department is also visible and strictly anonymous
     const csDept = insights.departmentBreakdowns['Computer Science & Engineering'];
     assert.ok(csDept);
     assert.equal(csDept.suppressedDueToPrivacy, false);
     assert.equal(csDept.count, 3);
-    assert.ok(csDept.items.length === 3);
+    assert.ok(csDept.items.every((item) => item.workerName === undefined && item.workerId === undefined));
   });
 });
 

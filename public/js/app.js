@@ -784,7 +784,7 @@
             <form class="role-login-form" data-role="worker" autocomplete="off" style="background:#ffffff; padding:18px; border-radius:8px; border:1px solid #bbf7d0;">
               <div class="form-group" style="margin-bottom:12px;">
                 <label class="form-label" style="font-size:0.9rem;">📧 ${t('portal.workerEmailLabel', 'Worker Email Address')}:</label>
-                <input type="email" name="email" class="form-control" value="" autocomplete="off" placeholder="${state.lang === 'en' ? (isCon ? 'murugan@metrobuild.org' : 'kavitha@apexcollege.edu') : t('portal.workerEmailLabel', 'Worker Email Address')}" required />
+                <input type="email" name="email" class="form-control" value="" autocomplete="off" placeholder="${state.lang === 'en' ? 'example@domain.com' : t('portal.workerEmailLabel', 'Worker Email Address')}" required />
               </div>
               <div class="form-group" style="margin-bottom:16px;">
                 <label class="form-label" style="font-size:0.9rem;">🔑 ${t('portal.passwordLabel', 'Unique Password')}:</label>
@@ -813,7 +813,7 @@
             <form class="role-login-form" data-role="admin" autocomplete="off" style="background:#ffffff; padding:18px; border-radius:8px; border:1px solid ${isCon ? '#fde68a' : '#c7d2fe'};">
               <div class="form-group" style="margin-bottom:12px;">
                 <label class="form-label" style="font-size:0.9rem;">📧 ${t('portal.employerEmailLabel', 'Employer Email Address')}:</label>
-                <input type="email" name="email" class="form-control" value="" autocomplete="off" placeholder="${state.lang === 'en' ? (isCon ? 'admin@metrobuild.org' : 'dean@apexcollege.edu') : t('portal.employerEmailLabel', 'Employer Email Address')}" required />
+                <input type="email" name="email" class="form-control" value="" autocomplete="off" placeholder="${state.lang === 'en' ? 'example@domain.com' : t('portal.employerEmailLabel', 'Employer Email Address')}" required />
               </div>
               <div class="form-group" style="margin-bottom:16px;">
                 <label class="form-label" style="font-size:0.9rem;">🔑 ${t('portal.passwordLabel', 'Unique Password')}:</label>
@@ -2300,7 +2300,7 @@
                     <span class="badge ${g.severity === 'critical' ? 'badge-danger' : 'badge-warning'}">${trSeverity(g.severity)}</span>
                   </div>
                   <div style="font-size:0.85rem; color:var(--text-muted); margin:4px 0;">
-                    ${t('admin.filedBy', 'Filed by')}: <strong>${trDynamic(g.workerName)}</strong> (${trDynamic(g.department || '')}) - ${new Date(g.submittedAt).toLocaleDateString(localeCode)}
+                    ${t('admin.filedBy', 'Filed by')}: 🔒 <strong>${t('feedback.anonymousWorkerLabel', 'Anonymous Worker')}</strong> (${trDynamic(g.department || '')}) - ${new Date(g.submittedAt).toLocaleDateString(localeCode)}
                   </div>
                   <p style="font-size:0.9rem;">${g.description}</p>
                   <div style="margin-top:8px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -2365,7 +2365,7 @@
                   <span class="badge ${g.status === 'Resolved' ? 'badge-success' : 'badge-warning'}">${t(`grievance.status${g.status.replace(/\s+/g, '')}`, g.status)}</span>
                 </div>
                 <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">
-                  ${t('common.worker', 'Worker')}: <strong>${trDynamic(g.workerName)}</strong> | ${t('grievance.category', 'Category')}: <strong>${trDynamic(g.categoryLabel)}</strong> | ${t('grievance.severity', 'Severity')}: <strong>${trSeverity(g.severity)}</strong>
+                  ${t('common.worker', 'Worker')}: 🔒 <strong>${t('feedback.anonymousWorkerLabel', 'Anonymous Worker')}</strong> | ${t('grievance.category', 'Category')}: <strong>${trDynamic(g.categoryLabel)}</strong> | ${t('grievance.severity', 'Severity')}: <strong>${trSeverity(g.severity)}</strong>
                 </div>
                 <p style="margin-bottom:10px;">${g.description}</p>
 

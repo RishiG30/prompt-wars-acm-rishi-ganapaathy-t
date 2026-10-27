@@ -30,7 +30,13 @@ router.get('/dashboard', requireAuth, requireRole('admin'), async (req, res, nex
     const totalHoursLogged = completedShifts.reduce((s, sh) => s + (sh.totalHours || 0), 0);
     const totalOtHours = completedShifts.reduce((s, sh) => s + (sh.overtimeHours || 0), 0);
 
-    const openGrievances = grievances.filter((g) => g.status !== 'Resolved');
+    const openGrievances = grievances
+      .filter((g) => g.status !== 'Resolved')
+      .map((g) => {
+        const copy = { ...g, workerName: 'Anonymous Worker' };
+        delete copy.workerId;
+        return copy;
+      });
     const criticalGrievances = openGrievances.filter((g) => g.severity === 'critical' || g.severity === 'high');
 
     res.json({

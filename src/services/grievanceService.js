@@ -61,7 +61,7 @@ class GrievanceService {
       industry: user.industry,
       department: user.department,
       workerId: user.id,
-      workerName: user.name,
+      workerName: 'Anonymous Worker',
       category,
       categoryLabel: categoryDef ? categoryDef.label : category,
       severity: safeSeverity,
@@ -75,7 +75,7 @@ class GrievanceService {
   }
 
   /**
-   * List grievances for worker or admin
+   * List grievances for worker or admin (strictly anonymizing worker identity)
    * @param {object} user - Requesting user
    * @param {object} [filters]
    * @returns {Promise<Array<object>>}
@@ -86,7 +86,14 @@ class GrievanceService {
       // Workers only see their own grievances for privacy
       query.workerId = user.id;
     }
-    return this.repo.listGrievances(query);
+    const items = await this.repo.listGrievances(query);
+    return items.map((g) => {
+      const copy = { ...g, workerName: 'Anonymous Worker' };
+      if (user.role === 'admin') {
+        delete copy.workerId;
+      }
+      return copy;
+    });
   }
 
   /**
