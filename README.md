@@ -13,6 +13,7 @@ Large-workforce, frontline organisations (construction projects, colleges/univer
 **FairShift** is a lightweight, mobile-first, multi-industry platform delivering transparent, dignified, and safe work environments. FairShift adapts via configuration to **Construction Sites** and **Colleges**, providing low-literacy friendly tools for workers and actionable oversight for employers.
 
 ### KEY PROMPT USED:
+(Built using Anti-Gravity)
 You are a senior full-stack engineer building a hackathon submission called
 "FairShift – A Decent Work Platform for Employee-Intensive Organisations"
 (SDG 8: Decent Work and Economic Growth). The output must be deployment-ready
