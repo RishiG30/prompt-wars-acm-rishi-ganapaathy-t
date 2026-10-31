@@ -51,7 +51,6 @@ Large-workforce, frontline organisations (construction projects, colleges/univer
   - **Multi-Industry JSON Schema Engine**: `src/config/industries/construction.json` (`METRO-4`) and `src/config/industries/college.json` (`APEX-1`)
 - **Testing**:
   - **Node.js Built-in Test Runner (`node --test`)** + **`supertest`** (`tests/*.test.js` — 16 automated unit & integration tests)
-- **External API Keys Required**: **None** (100% self-contained)
 
 ---
 
