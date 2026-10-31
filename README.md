@@ -1,10 +1,5 @@
 # FairShift – A Decent Work Platform for Employee-Intensive Organisations
-### UN Sustainable Development Goal 8 (SDG 8): Decent Work & Economic Growth
 
-[![Test Suite](https://img.shields.io/badge/tests-16%20passed-brightgreen.svg)]()
-[![Languages](https://img.shields.io/badge/languages-English%20%7C%20Tamil%20%7C%20Hindi-blue.svg)]()
-[![Accessibility](https://img.shields.io/badge/accessibility-WCAG%20AA%20Compliant-success.svg)]()
-[![Repository Size](https://img.shields.io/badge/repo%20size-%3C%201%20MB-blue.svg)]()
 
 ---
 
@@ -15,7 +10,7 @@ Large-workforce, frontline organisations (construction projects, colleges/univer
 - **Worker Vulnerability**: Workers rarely understand complex overtime calculations, lack itemized explanations, fear retaliation when reporting unsafe conditions, and face language barriers on basic smartphones.
 - **Operational Opacity**: Employers and foremen lack real-time visibility into excessive shift overtime, pending safety risks, and workforce satisfaction.
 
-**FairShift** is a lightweight, mobile-first, multi-industry platform delivering transparent, dignified, and safe work environments. Out of the box, FairShift adapts via configuration to **Construction Sites** and **Colleges**, providing low-literacy friendly tools for workers and actionable oversight for employers.
+**FairShift** is a lightweight, mobile-first, multi-industry platform delivering transparent, dignified, and safe work environments. FairShift adapts via configuration to **Construction Sites** and **Colleges**, providing low-literacy friendly tools for workers and actionable oversight for employers.
 
 ---
 
@@ -164,42 +159,9 @@ npm start
 ```
 
 ### Accessing the Application
-- Open **`http://localhost:8080`** in your browser.
+- Open **`https://prompt-wars-acm-rishi-ganapaathy-t.vercel.app`** in your browser.
 - **Step 1**: Choose your sector (**Construction Site `METRO-4`** or **College Campus `APEX-1`**).
 - **Step 2**: Log in via the separated **Worker / Staff Login Portal** or **Employer (Admin) Login Portal** (click **🎭 Demo Personas** in the top navigation bar to view reference credentials).
 - **Language Switching**: Use the top-right language selector to switch live between **🌐 English**, **🌐 தமிழ் (Tamil)**, and **🌐 हिन्दी (Hindi)**.
 
 ---
-
-## 7. SDG 8 Impact Notes
-
-- **Target 8.5 (Full & Productive Employment with Equal Pay)**: Transparent, itemized wage breakdowns clarify pay computations in regional languages (English, Tamil, Hindi), eliminating distrust.
-- **Target 8.8 (Protect Labour Rights & Safe Working Environments)**: Lowering the reporting barrier through voice dictation and 4-stage tracking ensures safety hazards are recorded and remedied before injuries occur.
-- **Privacy & Psychological Safety**: One-way salted hash rate limiting and k-anonymity (k ≥ 3) allow frontline workers to communicate without fear of supervisor reprisal.
-
----
-
-## 8. Limitations & Future Work
-
-- **Offline-First SQLite / Local Storage Sync**: While the web app is ultra-lightweight (< 25 KB JS uncompressed), expanding local IndexedDB caching will allow shift logging in zero-connectivity tunnels.
-- **Biometric QR Verification**: Hardware-assisted thermal/facial check-in kiosk integration for high-throughput gates.
-- **WhatsApp Notifications**: Automated WhatsApp message dispatching for payslip PDF receipts.
-
----
-
-## 9. Self-Audit Checklist
-
-- [x] **Repo Size**: Strictly under 10 MB (`< 1 MB` total excluding `node_modules`).
-- [x] **Git Branch**: Single branch only (`main`).
-- [x] **Zero Secrets**: All credentials dynamically provisioned; `.env.example` provided.
-- [x] **Separated Login Portals**: Independent Construction Site (`METRO-4`) and College Campus (`APEX-1`) portals.
-- [x] **Per-Person Tasks Folders**: Individual task folders (`tasks/<person-slug>/tasks.json`) for every worker and supervisor.
-- [x] **Attendance & Overtime**: Check-in via site code and geolocation; automated 8-hour cap & overtime calculation.
-- [x] **Transparent Payslip**: Itemized breakdown with plain-language explanation and Web Speech TTS read-aloud in English, Tamil & Hindi.
-- [x] **Safety Grievance**: Voice/text submission with photo support and 4-stage status tracking.
-- [x] **Anonymous Feedback**: Zero worker ID stored; one-way HMAC rate-limit token; k-anonymity threshold (k ≥ 3).
-- [x] **Accessibility**: WCAG AA contrast (≥ 4.5:1), 44px minimum touch targets, visible focus states, skip link, prefers-reduced-motion.
-- [x] **Passing Tests**: `npm test` runs 16 test suites with 100% pass rate.
-
----
-
