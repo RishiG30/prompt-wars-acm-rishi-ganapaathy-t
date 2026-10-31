@@ -101,6 +101,21 @@ FairShift does **not** hardcode roles, wage multipliers, hazards, or workplace t
 - **Overtime Multiplier**: **1.5x** (Extra duty exam invigilation / lab grading)
 - **Hazards**: Chemical reagent spills, lab electrical short circuits, honorarium delays
 
+### WORKER DASHBOARD
+<img width="2880" height="1914" alt="FairShift – Decent Work   Shift Welfare (SDG 8)" src="https://github.com/user-attachments/assets/519e2580-30e8-4bd8-9b82-a68db4e78c1d" />
+<img width="2880" height="1992" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 9" src="https://github.com/user-attachments/assets/8951a909-82ef-418d-9def-c5f680f04cc6" />
+<img width="2880" height="1620" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 8" src="https://github.com/user-attachments/assets/7f006b9a-18a8-40ec-9e64-23a73309cbdb" />
+<img width="2880" height="1914" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 1" src="https://github.com/user-attachments/assets/78190d4e-4a9c-44f9-905d-b74659376be9" />
+<img width="2880" height="2760" alt="safety" src="https://github.com/user-attachments/assets/0bc71c7c-ca6b-44e4-9e41-5d070a414b58" />
+<img width="2880" height="1650" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 3" src="https://github.com/user-attachments/assets/bc11587d-11f1-4b4f-bc01-14fc2843d9a5" />
+
+### EMPLOYER/ADMIN DASHBOARD
+<img width="2880" height="2084" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 10" src="https://github.com/user-attachments/assets/ca08a1bb-5f7e-4573-be09-92f958b34d17" />
+<img width="2880" height="2566" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 7" src="https://github.com/user-attachments/assets/6e9737da-dada-4979-a90a-fbba9b9f9385" />
+<img width="2880" height="1620" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 12" src="https://github.com/user-attachments/assets/5ca7e46a-9704-4904-8c99-b6b4d1fd2ca0" />
+<img width="2880" height="1766" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 13" src="https://github.com/user-attachments/assets/e7be81b7-2520-457e-bbff-5d7274fc79f2" />
+
+
 ### How to Onboard a Third Industry (e.g. Factory or Hospital) via Config Only:
 Simply add `src/config/industries/factory.json`:
 ```json
@@ -161,7 +176,13 @@ npm start
 ### Accessing the Application
 - Open **`https://prompt-wars-acm-rishi-ganapaathy-t.vercel.app`** in your browser.
 - **Step 1**: Choose your sector (**Construction Site `METRO-4`** or **College Campus `APEX-1`**).
+<img width="2066" height="1588" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 0" src="https://github.com/user-attachments/assets/840cad69-a6f0-4188-a790-048b83d40aee" />
 - **Step 2**: Log in via the separated **Worker / Staff Login Portal** or **Employer (Admin) Login Portal** (click **🎭 Demo Personas** in the top navigation bar to view reference credentials).
+<img width="2066" height="1588" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 0" src="https://github.com/user-attachments/assets/821567f4-e5d1-49d8-bf7b-9464bc6bc59c" />
+<img width="2880" height="1620" alt="FairShift – Decent Work   Shift Welfare (SDG 8) 14" src="https://github.com/user-attachments/assets/69385570-3688-49b1-a33a-29a548e70b55" />
 - **Language Switching**: Use the top-right language selector to switch live between **🌐 English**, **🌐 தமிழ் (Tamil)**, and **🌐 हिन्दी (Hindi)**.
+<img width="2880" height="1914" alt="FairShift – Decent Work   Shift Welfare (SDG 8)" src="https://github.com/user-attachments/assets/19427129-a019-402b-a84c-1534ab5b506e" />
+<img width="2880" height="1920" alt="ஃபேர்ஷிஃப்ட் – கண்ணியமான வேலை மற்றும் பணி நலன்" src="https://github.com/user-attachments/assets/35256774-cbfb-4666-819c-384fb8e9f7fc" />
+<img width="2880" height="1942" alt="फ़ेयरशिफ़्ट – सम्मानजनक कार्य और शिफ्ट कल्याण" src="https://github.com/user-attachments/assets/1276694a-e514-4304-b537-d73b3536233d" />
 
 ---
